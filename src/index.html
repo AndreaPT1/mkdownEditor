@@ -4,30 +4,104 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>mkdownEditor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="app">
       <header class="toolbar">
-        <div class="title-wrap">
-          <span class="app-title">mkdownEditor</span>
+        <div class="toolbar-left">
+          <div class="logo-mark">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16v16H4z" />
+              <path d="M7 15V9l3 3 3-3v6" />
+              <path d="M19 9l-2 6-2-6" />
+            </svg>
+          </div>
+          <span class="app-title">mkdown</span>
+          <span class="title-separator"></span>
           <span id="file-name" class="file-name">Untitled</span>
         </div>
-        <div class="format-actions" role="toolbar" aria-label="Formatting">
-          <button id="fmt-bold" type="button" title="Bold">B</button>
-          <button id="fmt-italic" type="button" title="Italic">I</button>
-          <button id="fmt-heading" type="button" title="Heading">H</button>
-          <button id="fmt-link" type="button" title="Link">Link</button>
-          <button id="fmt-list" type="button" title="Bulleted List">List</button>
-          <button id="fmt-code" type="button" title="Inline Code">Code</button>
+
+        <div class="toolbar-center">
+          <div class="format-actions" role="toolbar" aria-label="Formatting">
+            <button id="fmt-bold" type="button" title="Bold" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
+                <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
+              </svg>
+            </button>
+            <button id="fmt-italic" type="button" title="Italic" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="4" x2="10" y2="4" />
+                <line x1="14" y1="20" x2="5" y2="20" />
+                <line x1="15" y1="4" x2="9" y2="20" />
+              </svg>
+            </button>
+            <span class="fmt-divider"></span>
+            <button id="fmt-heading" type="button" title="Heading" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 4v16" />
+                <path d="M18 4v16" />
+                <path d="M6 12h12" />
+              </svg>
+            </button>
+            <button id="fmt-link" type="button" title="Link" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </button>
+            <button id="fmt-list" type="button" title="Bulleted List" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="9" y1="6" x2="20" y2="6" />
+                <line x1="9" y1="12" x2="20" y2="12" />
+                <line x1="9" y1="18" x2="20" y2="18" />
+                <circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none" />
+                <circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none" />
+                <circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+            <button id="fmt-code" type="button" title="Inline Code" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div class="actions">
-          <button id="open-button" type="button">Open</button>
-          <button id="save-button" type="button">Save</button>
-          <button id="save-as-button" type="button">Save As</button>
-          <select id="recent-select" aria-label="Recent files">
-            <option value="">Recent Files</option>
-          </select>
+
+        <div class="toolbar-right">
+          <div class="actions">
+            <div class="recent-wrap">
+              <svg class="recent-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <select id="recent-select" aria-label="Recent files">
+                <option value="">Recent Files</option>
+              </select>
+            </div>
+            <button id="open-button" type="button" class="action-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              <span>Open</span>
+            </button>
+            <button id="save-button" type="button" class="action-btn action-btn--primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              <span>Save</span>
+            </button>
+            <button id="save-as-button" type="button" class="action-btn">
+              <span>Save As</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -39,12 +113,16 @@
           role="textbox"
           aria-label="Markdown editor"
           spellcheck="false"
-          data-placeholder="Open a markdown file or start typing..."
+          data-placeholder="Start writing something beautiful..."
         ></div>
       </main>
 
       <footer class="status-bar">
-        <span id="status">Ready</span>
+        <div class="status-left">
+          <span class="status-dot"></span>
+          <span id="status">Ready</span>
+        </div>
+        <span class="status-right">Markdown</span>
       </footer>
     </div>
 

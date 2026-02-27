@@ -7,6 +7,7 @@ import TurndownService from "turndown";
 
 const editor = document.querySelector("#editor");
 const statusEl = document.querySelector("#status");
+const statusDot = document.querySelector(".status-dot");
 const fileNameEl = document.querySelector("#file-name");
 const openButton = document.querySelector("#open-button");
 const saveButton = document.querySelector("#save-button");
@@ -29,8 +30,12 @@ const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-
 
 marked.setOptions({ breaks: true, gfm: true });
 
-function setStatus(text) {
+function setStatus(text, state = "idle") {
   statusEl.textContent = text;
+  if (statusDot) {
+    const colors = { idle: "#FB923C", saved: "#22C55E", dirty: "#EF4444" };
+    statusDot.style.background = colors[state] || colors.idle;
+  }
 }
 
 function formatSavedAt(date) {
@@ -49,11 +54,11 @@ function setDirty(nextDirty) {
   isDirty = nextDirty;
   void updateTitle();
   if (isDirty) {
-    setStatus("Unsaved changes");
+    setStatus("Unsaved changes", "dirty");
   } else if (lastSavedAt) {
-    setStatus(`Saved at ${formatSavedAt(lastSavedAt)}`);
+    setStatus(`Saved at ${formatSavedAt(lastSavedAt)}`, "saved");
   } else {
-    setStatus("Ready");
+    setStatus("Ready", "idle");
   }
 }
 
@@ -89,7 +94,7 @@ async function loadRecents() {
     renderRecents();
   } catch (error) {
     console.error(error);
-    setStatus("Could not load recent files");
+    setStatus("Could not load recent files", "dirty");
   }
 }
 
@@ -117,7 +122,7 @@ async function handleOpen() {
     await openPath(selected);
   } catch (error) {
     console.error(error);
-    setStatus("Open failed");
+    setStatus("Open failed", "dirty");
   }
 }
 
@@ -141,7 +146,7 @@ async function handleSaveAs() {
     return true;
   } catch (error) {
     console.error(error);
-    setStatus("Save As failed");
+    setStatus("Save As failed", "dirty");
     return false;
   }
 }
@@ -159,7 +164,7 @@ async function handleSave() {
     await pushRecent(currentPath);
   } catch (error) {
     console.error(error);
-    setStatus("Save failed");
+    setStatus("Save failed", "dirty");
   }
 }
 
@@ -252,7 +257,7 @@ recentSelect.addEventListener("change", async () => {
     recentSelect.value = "";
   } catch (error) {
     console.error(error);
-    setStatus("Could not open recent file");
+    setStatus("Could not open recent file", "dirty");
   }
 });
 
@@ -329,7 +334,7 @@ async function setupDropHandling() {
       }
     } catch (error) {
       console.error(error);
-      setStatus("Drop open failed");
+      setStatus("Drop open failed", "dirty");
     }
   });
 }
