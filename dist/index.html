@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mkdownEditor</title>
+    <script type="module" crossorigin src="/assets/index-B0MHuV6L.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BXsiqEkf.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="toolbar">
+        <div class="title-wrap">
+          <span class="app-title">mkdownEditor</span>
+          <span id="file-name" class="file-name">Untitled</span>
+        </div>
+        <div class="format-actions" role="toolbar" aria-label="Formatting">
+          <button id="fmt-bold" type="button" title="Bold">B</button>
+          <button id="fmt-italic" type="button" title="Italic">I</button>
+          <button id="fmt-heading" type="button" title="Heading">H</button>
+          <button id="fmt-link" type="button" title="Link">Link</button>
+          <button id="fmt-list" type="button" title="Bulleted List">List</button>
+          <button id="fmt-code" type="button" title="Inline Code">Code</button>
+        </div>
+        <div class="actions">
+          <button id="open-button" type="button">Open</button>
+          <button id="save-button" type="button">Save</button>
+          <button id="save-as-button" type="button">Save As</button>
+          <select id="recent-select" aria-label="Recent files">
+            <option value="">Recent Files</option>
+          </select>
+        </div>
+      </header>
+
+      <main class="editor-wrap">
+        <div
+          id="editor"
+          class="editor"
+          contenteditable="true"
+          role="textbox"
+          aria-label="Markdown editor"
+          spellcheck="false"
+          data-placeholder="Open a markdown file or start typing..."
+        ></div>
+      </main>
+
+      <footer class="status-bar">
+        <span id="status">Ready</span>
+      </footer>
+    </div>
+
+  </body>
+</html>
