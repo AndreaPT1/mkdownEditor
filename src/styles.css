@@ -488,3 +488,52 @@ body {
   background: var(--orange-100);
   color: var(--gray-900);
 }
+
+/* ===== Responsive Toolbar ===== */
+
+/*
+ * Compact mode (≤ 1000px): icon-only action buttons.
+ * Fixes overflow that happens at the default 800px window width
+ * because the three toolbar sections sum to ~640px+ of rigid content.
+ * With labels hidden each action button shrinks from ~80px to ~35px.
+ */
+@media (max-width: 1000px) {
+  .toolbar {
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .file-name {
+    max-width: min(25vw, 200px);
+  }
+
+  .action-btn span {
+    display: none;
+  }
+
+  .action-btn {
+    padding: 7px 9px;
+  }
+}
+
+/*
+ * Narrow mode (≤ 760px): hide the recent-files dropdown.
+ * Below this width even icon-only buttons + dropdown leave < 220px
+ * for the format toolbar.
+ */
+@media (max-width: 760px) {
+  .recent-wrap {
+    display: none;
+  }
+}
+
+/*
+ * Minimal mode (≤ 520px): hide the format toolbar entirely.
+ * Core functionality (open / save) still accessible; keyboard
+ * shortcuts remain active for all formatting operations.
+ */
+@media (max-width: 520px) {
+  .toolbar-center {
+    display: none;
+  }
+}
