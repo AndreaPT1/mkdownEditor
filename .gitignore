@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+src-tauri/target/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Project management / AI tooling
+.imi/
+.entire/metadata/
+
+# Environment
+.env
+.env.*
