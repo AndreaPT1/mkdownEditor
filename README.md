@@ -1,19 +1,23 @@
 # mkdownEditor
 
-A minimal, native Markdown editor for macOS and Windows — built with [Tauri 2](https://tauri.app), vanilla JS, and Rust.
+A minimal, native Markdown editor for macOS, Windows, and Linux — built with [Tauri 2](https://tauri.app), vanilla JS, and Rust.
 
-![mkdownEditor](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey) ![version](https://img.shields.io/badge/version-0.1.0-orange)
+![mkdownEditor](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey) ![version](https://img.shields.io/badge/version-0.2.0-orange)
 
 ---
 
 ## Download
 
+Grab the latest release from the [Releases](../../releases) page.
+
 | Platform | File | Notes |
 |----------|------|-------|
-| macOS    | `.dmg` | Drag the app to Applications |
-| Windows  | `.exe` (NSIS installer) | Run the installer and follow the prompts |
+| macOS (Apple Silicon) | `mkdownEditor_*_aarch64.dmg` | Drag the app to Applications |
+| macOS (Intel) | `mkdownEditor_*_x64.dmg` | Drag the app to Applications |
+| Windows | `mkdownEditor_*_x64-setup.exe` | Run the installer and follow the prompts |
+| Linux | `mkdownEditor_*_amd64.AppImage` | `chmod +x` then run |
 
-Grab the latest release from the [Releases](../../releases) page.
+> **macOS:** at first launch, right-click the app → Open to bypass Gatekeeper.
 
 ## Features
 
