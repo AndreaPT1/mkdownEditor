@@ -286,7 +286,7 @@ fmtCodeButton.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (event) => {
-  if (!event.metaKey) {
+  if (!event.metaKey && !event.ctrlKey) {
     return;
   }
 
