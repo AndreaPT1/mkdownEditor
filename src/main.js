@@ -18,7 +18,12 @@ const fmtItalicButton = document.querySelector("#fmt-italic");
 const fmtHeadingButton = document.querySelector("#fmt-heading");
 const fmtLinkButton = document.querySelector("#fmt-link");
 const fmtListButton = document.querySelector("#fmt-list");
+const fmtOrderedListButton = document.querySelector("#fmt-ordered-list");
 const fmtCodeButton = document.querySelector("#fmt-code");
+const toggleSplitBtn = document.querySelector("#toggle-split");
+const toggleThemeBtn = document.querySelector("#toggle-theme");
+const sourceEditor = document.querySelector("#source");
+const editorWrap = document.querySelector(".editor-wrap");
 
 const MAX_RECENTS = 10;
 
@@ -26,6 +31,9 @@ let currentPath = null;
 let isDirty = false;
 let recents = [];
 let lastSavedAt = null;
+let isSplitView = false;
+let activePane = "editor";
+let isSyncing = false;
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
 
 marked.setOptions({ breaks: true, gfm: true });
@@ -173,6 +181,10 @@ function isEditorVisiblyEmpty() {
 }
 
 function getEditorMarkdown() {
+  if (isSplitView && activePane === "source") {
+    return sourceEditor.value;
+  }
+
   if (isEditorVisiblyEmpty()) {
     return "";
   }
@@ -185,10 +197,12 @@ function setEditorFromMarkdown(markdown) {
   const raw = markdown.trim();
   if (!raw) {
     editor.innerHTML = "";
+    if (isSplitView) sourceEditor.value = "";
     return;
   }
 
   editor.innerHTML = marked.parse(raw);
+  if (isSplitView) sourceEditor.value = raw;
 }
 
 function applyCommand(command, value = null) {
@@ -232,6 +246,11 @@ function insertLink() {
 
 editor.addEventListener("input", () => {
   setDirty(true);
+  if (isSplitView && activePane === "editor" && !isSyncing) {
+    isSyncing = true;
+    sourceEditor.value = isEditorVisiblyEmpty() ? "" : turndown.turndown(editor.innerHTML);
+    isSyncing = false;
+  }
 });
 
 openButton.addEventListener("click", () => {
@@ -275,6 +294,10 @@ fmtHeadingButton.addEventListener("click", () => {
 
 fmtListButton.addEventListener("click", () => {
   applyCommand("insertUnorderedList");
+});
+
+fmtOrderedListButton.addEventListener("click", () => {
+  applyCommand("insertOrderedList");
 });
 
 fmtLinkButton.addEventListener("click", () => {
@@ -339,7 +362,83 @@ async function setupDropHandling() {
   });
 }
 
+/* ===== Dark Mode ===== */
+
+const sunIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="5" />
+  <line x1="12" y1="1" x2="12" y2="3" />
+  <line x1="12" y1="21" x2="12" y2="23" />
+  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+  <line x1="1" y1="12" x2="3" y2="12" />
+  <line x1="21" y1="12" x2="23" y2="12" />
+  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+</svg>`;
+
+const moonIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+</svg>`;
+
+function updateThemeIcon(theme) {
+  toggleThemeBtn.innerHTML = theme === "dark" ? sunIcon : moonIcon;
+  toggleThemeBtn.title = theme === "dark" ? "Light Mode" : "Dark Mode";
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("mkdown-theme");
+  if (saved) {
+    document.documentElement.setAttribute("data-theme", saved);
+    updateThemeIcon(saved);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const next = current === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("mkdown-theme", next);
+  updateThemeIcon(next);
+}
+
+toggleThemeBtn.addEventListener("click", toggleTheme);
+
+/* ===== Split View ===== */
+
+function toggleSplitView() {
+  isSplitView = !isSplitView;
+  editorWrap.classList.toggle("split-view", isSplitView);
+  toggleSplitBtn.classList.toggle("active", isSplitView);
+
+  if (isSplitView) {
+    sourceEditor.value = getEditorMarkdown();
+    activePane = "editor";
+  }
+}
+
+editor.addEventListener("focus", () => {
+  activePane = "editor";
+});
+
+sourceEditor.addEventListener("focus", () => {
+  activePane = "source";
+});
+
+sourceEditor.addEventListener("input", () => {
+  if (isSyncing) return;
+  setDirty(true);
+  if (isSplitView && activePane === "source") {
+    isSyncing = true;
+    const md = sourceEditor.value.trim();
+    editor.innerHTML = md ? marked.parse(md) : "";
+    isSyncing = false;
+  }
+});
+
+toggleSplitBtn.addEventListener("click", toggleSplitView);
+
 async function init() {
+  initTheme();
   await loadRecents();
   await updateTitle();
   await setupDropHandling();

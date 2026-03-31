@@ -37,6 +37,30 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
+/* ===== Dark Theme ===== */
+[data-theme="dark"] {
+  --white: #191919;
+  --gray-50: #1E1E1E;
+  --gray-100: #262626;
+  --gray-200: #333333;
+  --gray-300: #444444;
+  --gray-400: #888888;
+  --gray-500: #999999;
+  --gray-600: #B0B0B0;
+  --gray-700: #CCCCCC;
+  --gray-800: #E0E0E0;
+  --gray-900: #F0F0F0;
+
+  --orange-50: #261A0D;
+  --orange-100: #3D2A12;
+  --orange-200: #5A3D18;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-ring: 0 0 0 3px rgba(249, 115, 22, 0.25);
+}
+
 /* ===== Reset ===== */
 *,
 *::before,
@@ -278,6 +302,40 @@ body {
   border-color: var(--orange-700);
 }
 
+/* ===== View Toggle Buttons ===== */
+.view-toggles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-toggle-btn:hover {
+  background: var(--gray-50);
+  color: var(--gray-800);
+  border-color: var(--gray-300);
+}
+
+.view-toggle-btn.active {
+  background: var(--orange-50);
+  color: var(--orange-600);
+  border-color: var(--orange-400);
+}
+
 /* ===== Editor ===== */
 .editor-wrap {
   padding: 16px 20px 12px;
@@ -428,6 +486,75 @@ body {
   border-radius: var(--radius-md);
 }
 
+/* ===== Split View ===== */
+.editor-wrap.split-view {
+  display: flex;
+  gap: 12px;
+}
+
+.editor-wrap.split-view .editor,
+.editor-wrap.split-view .source-editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.source-editor {
+  display: none;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--gray-800);
+  padding: 24px 28px;
+  font-size: 15px;
+  line-height: 1.7;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 400;
+  outline: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  resize: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.source-editor:hover {
+  border-color: var(--gray-300);
+}
+
+.source-editor:focus {
+  border-color: var(--orange-400);
+  box-shadow: var(--shadow-ring);
+}
+
+.source-editor::placeholder {
+  color: var(--gray-400);
+  font-style: italic;
+}
+
+.editor-wrap.split-view .source-editor {
+  display: block;
+}
+
+.source-editor::-webkit-scrollbar {
+  width: 6px;
+}
+
+.source-editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.source-editor::-webkit-scrollbar-thumb {
+  background: var(--gray-200);
+  border-radius: 3px;
+}
+
+.source-editor::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-300);
+}
+
 /* ===== Scrollbar ===== */
 .editor::-webkit-scrollbar {
   width: 6px;
@@ -514,6 +641,10 @@ body {
   .action-btn {
     padding: 7px 9px;
   }
+
+  .editor-wrap.split-view {
+    flex-direction: column;
+  }
 }
 
 /*
@@ -534,6 +665,10 @@ body {
  */
 @media (max-width: 520px) {
   .toolbar-center {
+    display: none;
+  }
+
+  .view-toggles {
     display: none;
   }
 }
