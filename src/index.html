@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -64,6 +64,16 @@
                 <circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none" />
               </svg>
             </button>
+            <button id="fmt-ordered-list" type="button" title="Numbered List" class="fmt-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="10" y1="6" x2="20" y2="6" />
+                <line x1="10" y1="12" x2="20" y2="12" />
+                <line x1="10" y1="18" x2="20" y2="18" />
+                <path d="M4 6h1v4" stroke-width="1.5" />
+                <path d="M4 10h2" stroke-width="1.5" />
+                <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" stroke-width="1.5" />
+              </svg>
+            </button>
             <button id="fmt-code" type="button" title="Inline Code" class="fmt-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="16 18 22 12 16 6" />
@@ -74,6 +84,19 @@
         </div>
 
         <div class="toolbar-right">
+          <div class="view-toggles">
+            <button id="toggle-split" type="button" title="Split View" class="view-toggle-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="12" y1="3" x2="12" y2="21" />
+              </svg>
+            </button>
+            <button id="toggle-theme" type="button" title="Dark Mode" class="view-toggle-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </button>
+          </div>
           <div class="actions">
             <div class="recent-wrap">
               <svg class="recent-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -120,6 +143,13 @@
           spellcheck="false"
           data-placeholder="Start writing something beautiful..."
         ></div>
+        <textarea
+          id="source"
+          class="source-editor"
+          spellcheck="false"
+          placeholder="Markdown source..."
+          aria-label="Markdown source"
+        ></textarea>
       </main>
 
       <footer class="status-bar">
