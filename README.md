@@ -2,7 +2,7 @@
 
 A minimal, native Markdown editor for macOS, Windows, and Linux — built with [Tauri 2](https://tauri.app), vanilla JS, and Rust.
 
-![mkdownEditor](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey) ![version](https://img.shields.io/badge/version-0.2.0-orange)
+![mkdownEditor](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey) ![version](https://img.shields.io/badge/version-0.3.0-orange)
 
 ---
 
@@ -22,7 +22,9 @@ Grab the latest release from the [Releases](../../releases) page.
 ## Features
 
 - Open, edit, and save `.md` files
-- Formatting toolbar — bold, italic, headings, links, lists, inline code
+- Formatting toolbar — bold, italic, headings, links, unordered list, numbered list, inline code
+- **Dark mode** — toggle with sun/moon button, persisted across sessions
+- **Split screen** — side-by-side WYSIWYG and raw Markdown source, live sync
 - Recent files dropdown
 - Unsaved-changes indicator in the status bar
 - Drag-and-drop file support
