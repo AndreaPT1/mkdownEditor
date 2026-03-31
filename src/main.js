@@ -182,7 +182,7 @@ function isEditorVisiblyEmpty() {
 
 function getEditorMarkdown() {
   if (isSplitView && activePane === "source") {
-    return sourceEditor.value.replace(/\n{3,}/g, "\n\n");
+    return sourceEditor.value;
   }
 
   if (isEditorVisiblyEmpty()) {
@@ -394,7 +394,7 @@ function initTheme() {
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute("data-theme");
+  const current = document.documentElement.getAttribute("data-theme") || "light";
   const next = current === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   localStorage.setItem("mkdown-theme", next);
