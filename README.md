@@ -9,9 +9,8 @@ to write, preview, and save plain `.md` files without opening a full IDE.
 
 It is intentionally simple: native file dialogs, a focused editor, a formatting
 toolbar, split Markdown/source view, recent files, drag-and-drop, and enough
-polish to feel like an actual app instead of a demo window. macOS is moving to a
-Swift-native Apple Silicon app; Windows and Linux continue to use the existing
-Tauri app.
+polish to feel like an actual app instead of a demo window. macOS now uses a
+Swift-native Apple Silicon app; Windows and Linux continue to use the Tauri app.
 
 ## Project Status
 
