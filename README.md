@@ -1,7 +1,7 @@
 # mkdownEditor
 
 ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
-![version](https://img.shields.io/badge/version-0.3.1-orange)
+![version](https://img.shields.io/badge/version-0.3.2-orange)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
 mkdownEditor is a small desktop Markdown editor for people who want a calm place

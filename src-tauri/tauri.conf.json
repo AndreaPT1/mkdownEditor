@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "mkdownEditor",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "identifier": "com.andrea.mkdowneditor",
   "build": {
     "beforeDevCommand": "npm run dev -- --host --port 1420",

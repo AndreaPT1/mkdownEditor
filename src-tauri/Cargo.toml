@@ -1,6 +1,6 @@
 [package]
 name = "mkdown-editor"
-version = "0.3.1"
+version = "0.3.2"
 description = "A small desktop Markdown editor"
 authors = ["Andrea Giansanti"]
 edition = "2021"
