@@ -1,6 +1,6 @@
 # mkdownEditor
 
-![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
+![platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon%20%7C%20Windows%20%7C%20Linux-lightgrey)
 ![version](https://img.shields.io/badge/version-0.3.2-orange)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
@@ -9,7 +9,9 @@ to write, preview, and save plain `.md` files without opening a full IDE.
 
 It is intentionally simple: native file dialogs, a focused editor, a formatting
 toolbar, split Markdown/source view, recent files, drag-and-drop, and enough
-polish to feel like an actual app instead of a demo window.
+polish to feel like an actual app instead of a demo window. macOS is moving to a
+Swift-native Apple Silicon app; Windows and Linux continue to use the existing
+Tauri app.
 
 ## Project Status
 
@@ -19,8 +21,9 @@ Markdown easier, not because the app is trying to become a giant publishing
 suite.
 
 Expect a lightweight editor, not a replacement for Obsidian, VS Code, Typora, or
-a full knowledge-base system. If you want a focused Markdown scratchpad with
-native packaging across macOS, Windows, and Linux, you are in the right place.
+a full knowledge-base system. If you want a focused Markdown scratchpad with a
+native macOS path and pragmatic Windows/Linux packages, you are in the right
+place.
 
 ## What It Does
 
@@ -45,20 +48,32 @@ Prebuilt installers live on the [Releases](../../releases) page.
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| macOS Apple Silicon | `mkdownEditor_*_aarch64.dmg` | Drag the app to Applications |
-| macOS Intel | `mkdownEditor_*_x64.dmg` | Drag the app to Applications |
+| macOS Apple Silicon | `mkdownEditor_*_native-macos-arm64.zip` | Swift-native app; unsigned builds may require right-click → Open |
 | Windows | `mkdownEditor_*_x64-setup.exe` | Unsigned builds may trigger SmartScreen |
 | Linux | `mkdownEditor_*_amd64.AppImage` | Run `chmod +x` before launching |
 
-On macOS, the first launch may require right-clicking the app and choosing
-**Open** because the app is not distributed through the Mac App Store.
+The Tauri macOS release path has been retired. macOS releases are Swift-native
+and Apple Silicon only. Intel Mac builds are no longer produced.
 
 On Windows, Microsoft Defender SmartScreen may warn that the app is
 unrecognized. That is expected for unsigned independent releases. Only install
 builds downloaded from this repository's Releases page. Maintainer notes are in
 [docs/windows-smartscreen.md](docs/windows-smartscreen.md).
 
-## Quick Start
+## Quick Start: Native macOS
+
+```bash
+git clone https://github.com/AndreaPT1/mkdownEditor.git
+cd mkdownEditor
+cd macos-native
+xcodegen generate
+xcodebuild -project mkdownEditorNative.xcodeproj \
+  -scheme mkdownEditorNative \
+  -destination 'platform=macOS,arch=arm64' \
+  build
+```
+
+## Quick Start: Windows And Linux
 
 ```bash
 git clone https://github.com/AndreaPT1/mkdownEditor.git
@@ -69,29 +84,48 @@ npm run tauri dev
 
 ## Build From Source
 
-Requirements:
+Native macOS requirements:
+
+- Apple Silicon Mac
+- [Xcode](https://developer.apple.com/xcode/) 26 or newer
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.45 or newer
+
+Create a native macOS build:
+
+```bash
+cd macos-native
+xcodegen generate
+xcodebuild -project mkdownEditorNative.xcodeproj \
+  -scheme mkdownEditorNative \
+  -destination 'platform=macOS,arch=arm64' \
+  build
+```
+
+Windows/Linux Tauri requirements:
 
 - [Node.js](https://nodejs.org) 18 or newer
 - [Rust](https://rustup.rs)
 - The platform prerequisites for [Tauri 2](https://tauri.app/start/prerequisites/)
 
-Create a production build:
+Create a Windows or Linux Tauri production build:
 
 ```bash
 npm run tauri build
 ```
 
-Installers are written to `src-tauri/target/release/bundle/`.
+Installers are written to `src-tauri/target/release/bundle/`. The Tauri macOS
+build path is intentionally disabled; use `macos-native/` for macOS.
 
 ## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
-| Desktop shell | Tauri 2 |
-| Frontend | Vanilla JavaScript, HTML, CSS |
-| Backend | Rust |
-| Build tool | Vite 7 |
-| Markdown conversion | `marked` and `turndown` |
+| Native macOS | SwiftUI, AppKit, XcodeGen |
+| Windows/Linux shell | Tauri 2 |
+| Windows/Linux frontend | Vanilla JavaScript, HTML, CSS |
+| Windows/Linux backend | Rust |
+| Windows/Linux build tool | Vite 7 |
+| Markdown conversion | Native Swift preview on macOS; `marked` and `turndown` on Windows/Linux |
 
 The app deliberately keeps the stack small. Most of the product lives in a plain
 frontend with a Rust/Tauri bridge for native file access.

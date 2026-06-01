@@ -14,12 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-            name: 'macOS Apple Silicon'
-          - platform: macos-latest
-            args: '--target x86_64-apple-darwin'
-            name: 'macOS Intel'
           - platform: windows-latest
             args: ''
             name: 'Windows'
@@ -39,8 +33,6 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ contains(matrix.args, 'aarch64') && 'aarch64-apple-darwin' || contains(matrix.args, 'x86_64') && 'x86_64-apple-darwin' || '' }}
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -63,8 +55,7 @@ jobs:
 
             | Platform | File |
             |----------|------|
-            | macOS (Apple Silicon) | `mkdownEditor_*_aarch64.dmg` |
-            | macOS (Intel) | `mkdownEditor_*_x64.dmg` |
+            | macOS (Apple Silicon) | `mkdownEditor_*_native-macos-arm64.zip` |
             | Windows | `mkdownEditor_*_x64-setup.exe` |
             | Linux | `mkdownEditor_*_amd64.AppImage` |
 
@@ -72,7 +63,57 @@ jobs:
             Windows Defender SmartScreen may warn that mkdownEditor is unrecognized while Windows releases are unsigned or still building publisher reputation. Only install downloads from this official GitHub release.
 
             ### macOS note
-            At first launch, right-click the app → Open to bypass Gatekeeper.
+            The macOS build is now Swift-native and Apple Silicon only. At first launch, right-click the app → Open to bypass Gatekeeper while builds are unsigned.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+  native-macos:
+    name: Native macOS Apple Silicon
+    needs: build
+    runs-on: macos-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+
+      - name: Generate native Xcode project
+        run: xcodegen generate
+        working-directory: macos-native
+
+      - name: Build native macOS app
+        run: |
+          xcodebuild \
+            -project mkdownEditorNative.xcodeproj \
+            -scheme mkdownEditorNative \
+            -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+        working-directory: macos-native
+
+      - name: Package native macOS app
+        run: |
+          ditto -c -k --keepParent \
+            build/Build/Products/Release/mkdownEditorNative.app \
+            "mkdownEditor_${GITHUB_REF_NAME}_native-macos-arm64.zip"
+        working-directory: macos-native
+
+      - name: Upload native macOS release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload \
+            "${GITHUB_REF_NAME}" \
+            "mkdownEditor_${GITHUB_REF_NAME}_native-macos-arm64.zip" \
+            --clobber
+        working-directory: macos-native
