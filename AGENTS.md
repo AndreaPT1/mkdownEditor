@@ -86,6 +86,44 @@ bunx imi-agent
 
 Then re-run `imi context`.
 
+---
+
+# mkdownEditor — Project Direction
+
+The current active product direction is a separate native macOS version of
+mkdownEditor built in Swift. Before doing implementation work, run
+`imi context` and confirm the work maps to the active native macOS goal.
+
+## Branch and product boundaries
+
+- `master` remains the stable cross-platform Tauri app.
+- `codex/native-macos-swift` is the Swift-native macOS development branch.
+- `codex/macos-native-feel` is only a small Tauri window-chrome patch branch;
+  do not treat it as the Swift-native codebase.
+- Native macOS source should live under `macos-native/` unless IMI records a
+  newer decision.
+- Do not move, delete, or rewrite the existing Tauri files (`src/`,
+  `src-tauri/`, `package.json`, `vite.config.js`) while working on the native
+  track unless a task explicitly requires it.
+
+## Native macOS release expectations
+
+- Keep the existing Tauri release workflow intact for Windows, Linux, and the
+  current cross-platform macOS builds.
+- Native macOS artifacts should be named clearly, for example including
+  `native-macos` or `swift`, so they cannot be confused with Tauri macOS DMGs.
+- Be honest about signing and notarization. Do not add fake certificate
+  settings or placeholder secrets that imply Gatekeeper is solved without real
+  Apple Developer signing material.
+- Prefer SwiftUI/AppKit conventions for menus, windows, document state,
+  keyboard shortcuts, file panels, and packaging.
+
+## Native macOS first milestone
+
+The first native milestone is a credible Mac app shell, not full feature parity.
+It should build locally, open a native window, support basic Markdown editing,
+and preserve the existing cross-platform app unchanged.
+
 
 ---
 
