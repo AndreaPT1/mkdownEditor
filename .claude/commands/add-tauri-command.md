@@ -9,8 +9,7 @@ Follow these steps:
 2. **Add the Rust function** in `lib.rs`:
    ```rust
    #[tauri::command]
-   fn my_command(param: String) -> Result<ReturnType, String> {
-       // implementation
+   fn my_command(param: FilePath) -> CommandResult<ReturnType> {
        Ok(result)
    }
    ```
@@ -28,12 +27,15 @@ Follow these steps:
 
 4. **Read `src/main.js`** to find the right place to add the JS call.
 
-5. **Add the JS call** using `invoke`:
+5. **Add a JS wrapper** near the existing Tauri command wrappers:
    ```js
-   import { invoke } from "@tauri-apps/api/core";
-   const result = await invoke("my_command", { param: value });
+   function myCommand(param) {
+     return invoke(TAURI_COMMANDS.MY_COMMAND, { param });
+   }
    ```
 
 6. Wire up any UI elements if needed.
 
-Keep error handling consistent: Rust returns `Result<T, String>`, JS uses try/catch and calls `setStatus("...", "dirty")` on error.
+Keep error handling consistent: Rust returns `CommandResult<T>`, JS uses
+try/catch at user-facing boundaries and calls `setStatus("...", "dirty")` on
+visible failures.

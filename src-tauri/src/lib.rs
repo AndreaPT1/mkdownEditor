@@ -1,8 +1,15 @@
 use base64::{engine::general_purpose, Engine as _};
 use serde_json;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
+
+type CommandError = String;
+type CommandResult<T> = Result<T, CommandError>;
+type FilePath = PathBuf;
+type MarkdownText = String;
+type DataUrl = String;
+type RecentFiles = Vec<FilePath>;
 
 #[cfg(target_os = "linux")]
 fn configure_linux_webkit_environment() {
@@ -15,17 +22,17 @@ fn configure_linux_webkit_environment() {
 fn configure_linux_webkit_environment() {}
 
 #[tauri::command]
-fn read_file(path: String) -> Result<String, String> {
+fn read_file(path: FilePath) -> CommandResult<MarkdownText> {
     fs::read_to_string(path).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
-fn write_file(path: String, content: String) -> Result<(), String> {
+fn write_file(path: FilePath, content: MarkdownText) -> CommandResult<()> {
     fs::write(path, content).map_err(|err| err.to_string())
 }
 
-fn image_mime_type(path: &str) -> Option<&'static str> {
-    let extension = PathBuf::from(path)
+fn image_mime_type(path: &Path) -> Option<&'static str> {
+    let extension = path
         .extension()
         .and_then(|extension| extension.to_str())?
         .to_ascii_lowercase();
@@ -45,7 +52,7 @@ fn image_mime_type(path: &str) -> Option<&'static str> {
 }
 
 #[tauri::command]
-fn read_image_data_url(path: String) -> Result<String, String> {
+fn read_image_data_url(path: FilePath) -> CommandResult<DataUrl> {
     let mime_type = image_mime_type(&path).ok_or_else(|| "Unsupported image type".to_string())?;
     let bytes = fs::read(path).map_err(|err| err.to_string())?;
     let encoded = general_purpose::STANDARD.encode(bytes);
@@ -53,7 +60,7 @@ fn read_image_data_url(path: String) -> Result<String, String> {
     Ok(format!("data:{mime_type};base64,{encoded}"))
 }
 
-fn recent_files_path(app: &AppHandle) -> Result<PathBuf, String> {
+fn recent_files_path(app: &AppHandle) -> CommandResult<PathBuf> {
     let base = app
         .path()
         .app_config_dir()
@@ -68,7 +75,7 @@ fn recent_files_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
-fn load_recent_files(app: AppHandle) -> Result<Vec<String>, String> {
+fn load_recent_files(app: AppHandle) -> CommandResult<RecentFiles> {
     let path = recent_files_path(&app)?;
 
     if !path.exists() {
@@ -76,11 +83,11 @@ fn load_recent_files(app: AppHandle) -> Result<Vec<String>, String> {
     }
 
     let raw = fs::read_to_string(path).map_err(|err| err.to_string())?;
-    serde_json::from_str::<Vec<String>>(&raw).map_err(|err| err.to_string())
+    serde_json::from_str::<RecentFiles>(&raw).map_err(|err| err.to_string())
 }
 
 #[tauri::command]
-fn save_recent_files(app: AppHandle, files: Vec<String>) -> Result<(), String> {
+fn save_recent_files(app: AppHandle, files: RecentFiles) -> CommandResult<()> {
     let path = recent_files_path(&app)?;
     let json = serde_json::to_string_pretty(&files).map_err(|err| err.to_string())?;
     fs::write(path, json).map_err(|err| err.to_string())

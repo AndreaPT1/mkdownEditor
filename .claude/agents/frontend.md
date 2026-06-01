@@ -35,9 +35,10 @@ You are a frontend specialist working on **mkdownEditor**, a minimal desktop Mar
 - `insertLink()` — prompts for URL, inserts anchor
 
 ### Tauri integration
-- File I/O: `invoke("read_file", { path })`, `invoke("write_file", { path, content })`
-- Recents: `invoke("load_recent_files")`, `invoke("save_recent_files", { files })`
-- File dialogs: `open({...})`, `save({...})` from `@tauri-apps/plugin-dialog`
+- Use the local command wrappers in `src/main.js` for file I/O, image previews,
+  and recents so command names and payload shapes stay centralized.
+- File dialogs use `open({...})` and `save({...})` from `@tauri-apps/plugin-dialog`.
+- Keep dialog filters and file-extension lists in the existing shared constants.
 
 ## Design system
 - Background: white `#FFFFFF`
@@ -49,4 +50,5 @@ You are a frontend specialist working on **mkdownEditor**, a minimal desktop Mar
 ## Constraints
 - Vanilla JS only — no React, Vue, or other frameworks
 - Do not add npm dependencies without a clear need
-- Do not touch Rust files (`src-tauri/`) — that is the backend agent's domain
+- Do not touch Rust files (`src-tauri/`) unless the task explicitly crosses the
+  JS/Rust command boundary.

@@ -7,12 +7,12 @@ A minimal desktop Markdown editor built with **Tauri 2** + **Vite** (vanilla JS)
 ```
 mkdownEditor/
 ├── src/                    # Frontend (vanilla JS + HTML + CSS)
-│   ├── main.js             # All frontend logic: file ops, formatting, drag-drop
+│   ├── main.js             # Frontend state, file ops, formatting, drag-drop
 │   ├── index.html          # App shell: toolbar, editor, status bar
 │   └── styles.css          # Pristine white theme, orange accents (#FB923C)
 ├── src-tauri/
 │   ├── src/
-│   │   ├── lib.rs          # Tauri commands: read_file, write_file, load/save_recent_files
+│   │   ├── lib.rs          # Tauri commands for file I/O, images, and recents
 │   │   └── main.rs         # Entry point
 │   ├── tauri.conf.json     # App config: identifier com.andrea.mkdowneditor
 │   └── Cargo.toml
@@ -34,20 +34,23 @@ mkdownEditor/
 ## Key Patterns
 
 ### Tauri Commands (Rust → JS)
-- Rust: `#[tauri::command] fn my_command(...) -> Result<T, String>` in `src-tauri/src/lib.rs`
+- Rust: `#[tauri::command] fn my_command(...) -> CommandResult<T>` in `src-tauri/src/lib.rs`
 - Register in `invoke_handler!(tauri::generate_handler![...])` in `lib.rs`
-- JS: `await invoke("my_command", { param: value })`
+- JS: prefer a small wrapper in `src/main.js` so command names and payloads stay centralized.
 
 ### Editor Model
 - Editor is a `contenteditable` div (`#editor`)
 - Load: `markdown → marked.parse() → innerHTML`
 - Save: `innerHTML → turndown.turndown() → markdown`
 - Formatting uses `document.execCommand()` for bold/italic/lists/heading
+- Local image references are preserved as Markdown paths and previewed through
+  the `read_image_data_url` command.
 
 ### State
 - `currentPath: string | null` — currently open file path
 - `isDirty: boolean` — unsaved changes
 - `recents: string[]` — recent file list (persisted via Tauri to `app_config_dir/recent_files.json`)
+- `activePane: "editor" | "source"` — keeps split-view edits flowing in the right direction
 
 ## Dev Commands
 

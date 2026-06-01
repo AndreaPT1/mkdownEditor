@@ -16,21 +16,25 @@ You are a Tauri 2 + Rust specialist working on **mkdownEditor**, a minimal deskt
 
 ### Adding a Tauri command
 1. Write the function in `lib.rs` with `#[tauri::command]`
-2. All commands return `Result<T, String>` — map errors with `.map_err(|e| e.to_string())`
+2. Use `CommandResult<T>` and the existing local aliases when they describe the
+   command contract.
 3. Register in `invoke_handler!(tauri::generate_handler![...])`
-4. The JS side calls it with `invoke("command_name", { param: value })`
+4. Add or update the JS wrapper in `src/main.js` instead of scattering raw
+   `invoke("command_name", ...)` calls.
 
 ### File system
 - Config files live in `app.path().app_config_dir()` — always create the directory if missing
 - Use `std::fs` for file operations
 
 ### Existing commands
-- `read_file(path: String) -> Result<String, String>`
-- `write_file(path: String, content: String) -> Result<(), String>`
-- `load_recent_files(app: AppHandle) -> Result<Vec<String>, String>`
-- `save_recent_files(app: AppHandle, files: Vec<String>) -> Result<(), String>`
+- `read_file(path: FilePath) -> CommandResult<MarkdownText>`
+- `write_file(path: FilePath, content: MarkdownText) -> CommandResult<()>`
+- `read_image_data_url(path: FilePath) -> CommandResult<DataUrl>`
+- `load_recent_files(app: AppHandle) -> CommandResult<RecentFiles>`
+- `save_recent_files(app: AppHandle, files: RecentFiles) -> CommandResult<()>`
 
 ## Constraints
 - Keep the Rust code idiomatic and minimal
 - Do not add Cargo dependencies without a clear need
-- Do not touch frontend files (`src/`) — that is the frontend agent's domain
+- Do not touch frontend files (`src/`) unless the task explicitly crosses the
+  JS/Rust command boundary.

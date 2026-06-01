@@ -342,7 +342,8 @@ body {
   overflow: hidden;
 }
 
-.editor {
+.editor,
+.source-editor {
   width: 100%;
   height: 100%;
   border: 1px solid var(--gray-200);
@@ -362,11 +363,13 @@ body {
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
-.editor:hover {
+.editor:hover,
+.source-editor:hover {
   border-color: var(--gray-300);
 }
 
-.editor:focus {
+.editor:focus,
+.source-editor:focus {
   border-color: var(--orange-400);
   box-shadow: var(--shadow-ring);
 }
@@ -513,33 +516,7 @@ body {
 
 .source-editor {
   display: none;
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  background: var(--white);
-  color: var(--gray-800);
-  padding: 24px 28px;
-  font-size: 15px;
-  line-height: 1.7;
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-weight: 400;
-  outline: none;
-  overflow-y: auto;
-  overflow-x: hidden;
   resize: none;
-  white-space: pre-wrap;
-  word-break: break-word;
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
-}
-
-.source-editor:hover {
-  border-color: var(--gray-300);
-}
-
-.source-editor:focus {
-  border-color: var(--orange-400);
-  box-shadow: var(--shadow-ring);
 }
 
 .source-editor::placeholder {
@@ -551,38 +528,25 @@ body {
   display: block;
 }
 
+/* ===== Scrollbar ===== */
+.editor::-webkit-scrollbar,
 .source-editor::-webkit-scrollbar {
   width: 6px;
 }
 
+.editor::-webkit-scrollbar-track,
 .source-editor::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.editor::-webkit-scrollbar-thumb,
 .source-editor::-webkit-scrollbar-thumb {
   background: var(--gray-200);
   border-radius: 3px;
 }
 
+.editor::-webkit-scrollbar-thumb:hover,
 .source-editor::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-300);
-}
-
-/* ===== Scrollbar ===== */
-.editor::-webkit-scrollbar {
-  width: 6px;
-}
-
-.editor::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.editor::-webkit-scrollbar-thumb {
-  background: var(--gray-200);
-  border-radius: 3px;
-}
-
-.editor::-webkit-scrollbar-thumb:hover {
   background: var(--gray-300);
 }
 
@@ -631,12 +595,7 @@ body {
 
 /* ===== Responsive Toolbar ===== */
 
-/*
- * Compact mode (≤ 1000px): icon-only action buttons.
- * Fixes overflow that happens at the default 800px window width
- * because the three toolbar sections sum to ~640px+ of rigid content.
- * With labels hidden each action button shrinks from ~80px to ~35px.
- */
+/* Compact mode: keep the toolbar usable at the default 800px window width. */
 @media (max-width: 1000px) {
   .toolbar {
     gap: 12px;
@@ -660,22 +619,14 @@ body {
   }
 }
 
-/*
- * Narrow mode (≤ 760px): hide the recent-files dropdown.
- * Below this width even icon-only buttons + dropdown leave < 220px
- * for the format toolbar.
- */
+/* Narrow mode: prioritize editor controls over the recent-files dropdown. */
 @media (max-width: 760px) {
   .recent-wrap {
     display: none;
   }
 }
 
-/*
- * Minimal mode (≤ 520px): hide the format toolbar entirely.
- * Core functionality (open / save) still accessible; keyboard
- * shortcuts remain active for all formatting operations.
- */
+/* Minimal mode: leave core file actions visible in the smallest supported window. */
 @media (max-width: 520px) {
   .toolbar-center {
     display: none;

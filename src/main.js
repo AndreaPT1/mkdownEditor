@@ -5,39 +5,117 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { marked } from "marked";
 import TurndownService from "turndown";
 
-const editor = document.querySelector("#editor");
-const statusEl = document.querySelector("#status");
-const statusDot = document.querySelector(".status-dot");
-const fileNameEl = document.querySelector("#file-name");
-const openButton = document.querySelector("#open-button");
-const saveButton = document.querySelector("#save-button");
-const saveAsButton = document.querySelector("#save-as-button");
-const recentSelect = document.querySelector("#recent-select");
-const fmtBoldButton = document.querySelector("#fmt-bold");
-const fmtItalicButton = document.querySelector("#fmt-italic");
-const fmtHeadingButton = document.querySelector("#fmt-heading");
-const fmtLinkButton = document.querySelector("#fmt-link");
-const fmtImageButton = document.querySelector("#fmt-image");
-const fmtListButton = document.querySelector("#fmt-list");
-const fmtOrderedListButton = document.querySelector("#fmt-ordered-list");
-const fmtCodeButton = document.querySelector("#fmt-code");
-const toggleSplitBtn = document.querySelector("#toggle-split");
-const toggleThemeBtn = document.querySelector("#toggle-theme");
-const sourceEditor = document.querySelector("#source");
-const editorWrap = document.querySelector(".editor-wrap");
+/**
+ * @typedef {string} FilePath
+ * @typedef {string} MarkdownText
+ * @typedef {string} DataUrl
+ * @typedef {"idle" | "saved" | "dirty"} StatusState
+ * @typedef {"editor" | "source"} ActivePane
+ * @typedef {"light" | "dark"} ThemeName
+ * @typedef {"bold" | "italic" | "formatBlock" | "insertUnorderedList" | "insertOrderedList"} EditorCommand
+ * @typedef {{ name: string, extensions: readonly string[] }} DialogFilter
+ */
+
+function missingElementError(selector, expectedType) {
+  return new Error(`Expected ${selector} to be a ${expectedType}`);
+}
+
+function requireHtmlElement(selector) {
+  const element = document.querySelector(selector);
+  if (!(element instanceof HTMLElement)) {
+    throw missingElementError(selector, "HTML element");
+  }
+
+  return element;
+}
+
+function requireButtonElement(selector) {
+  const element = document.querySelector(selector);
+  if (!(element instanceof HTMLButtonElement)) {
+    throw missingElementError(selector, "button");
+  }
+
+  return element;
+}
+
+function requireSelectElement(selector) {
+  const element = document.querySelector(selector);
+  if (!(element instanceof HTMLSelectElement)) {
+    throw missingElementError(selector, "select");
+  }
+
+  return element;
+}
+
+function requireTextAreaElement(selector) {
+  const element = document.querySelector(selector);
+  if (!(element instanceof HTMLTextAreaElement)) {
+    throw missingElementError(selector, "textarea");
+  }
+
+  return element;
+}
+
+const editor = requireHtmlElement("#editor");
+const statusEl = requireHtmlElement("#status");
+const statusDot = requireHtmlElement(".status-dot");
+const fileNameEl = requireHtmlElement("#file-name");
+const openButton = requireButtonElement("#open-button");
+const saveButton = requireButtonElement("#save-button");
+const saveAsButton = requireButtonElement("#save-as-button");
+const recentSelect = requireSelectElement("#recent-select");
+const fmtBoldButton = requireButtonElement("#fmt-bold");
+const fmtItalicButton = requireButtonElement("#fmt-italic");
+const fmtHeadingButton = requireButtonElement("#fmt-heading");
+const fmtLinkButton = requireButtonElement("#fmt-link");
+const fmtImageButton = requireButtonElement("#fmt-image");
+const fmtListButton = requireButtonElement("#fmt-list");
+const fmtOrderedListButton = requireButtonElement("#fmt-ordered-list");
+const fmtCodeButton = requireButtonElement("#fmt-code");
+const toggleSplitBtn = requireButtonElement("#toggle-split");
+const toggleThemeBtn = requireButtonElement("#toggle-theme");
+const sourceEditor = requireTextAreaElement("#source");
+const editorWrap = requireHtmlElement(".editor-wrap");
 
 const MAX_RECENTS = 10;
+const TAURI_COMMANDS = Object.freeze({
+  READ_FILE: "read_file",
+  WRITE_FILE: "write_file",
+  READ_IMAGE_DATA_URL: "read_image_data_url",
+  LOAD_RECENT_FILES: "load_recent_files",
+  SAVE_RECENT_FILES: "save_recent_files"
+});
+const DATA_ATTRIBUTES = Object.freeze({
+  MARKDOWN_SRC: "data-markdown-src",
+  PREVIEW_SRC: "data-preview-src",
+  THEME: "data-theme"
+});
+const STORAGE_KEYS = Object.freeze({
+  THEME: "mkdown-theme"
+});
+const MARKDOWN_DIALOG_EXTENSIONS = Object.freeze(["md", "markdown", "txt"]);
+const MARKDOWN_SAVE_EXTENSIONS = Object.freeze(["md", "markdown"]);
+const IMAGE_DIALOG_EXTENSIONS = Object.freeze(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif", "apng"]);
+const DIALOG_FILTERS = Object.freeze({
+  MARKDOWN_OPEN: Object.freeze({ name: "Markdown", extensions: MARKDOWN_DIALOG_EXTENSIONS }),
+  MARKDOWN_SAVE: Object.freeze({ name: "Markdown", extensions: MARKDOWN_SAVE_EXTENSIONS }),
+  IMAGE_OPEN: Object.freeze({ name: "Images", extensions: IMAGE_DIALOG_EXTENSIONS })
+});
 
+/** @type {FilePath | null} */
 let currentPath = null;
 let isDirty = false;
+/** @type {FilePath[]} */
 let recents = [];
+/** @type {Date | null} */
 let lastSavedAt = null;
 let isSplitView = false;
+/** @type {ActivePane} */
 let activePane = "editor";
 let isSyncing = false;
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
-const IMAGE_EXTENSIONS = new Set([".apng", ".avif", ".bmp", ".gif", ".ico", ".jpg", ".jpeg", ".png", ".svg", ".webp"]);
-const MARKDOWN_EXTENSIONS = new Set([".md", ".markdown", ".txt"]);
+const IMAGE_EXTENSIONS = new Set(IMAGE_DIALOG_EXTENSIONS.map((extension) => `.${extension}`));
+const MARKDOWN_EXTENSIONS = new Set(MARKDOWN_DIALOG_EXTENSIONS.map((extension) => `.${extension}`));
 let imagePreviewVersion = 0;
 
 marked.setOptions({ breaks: true, gfm: true });
@@ -45,7 +123,11 @@ marked.setOptions({ breaks: true, gfm: true });
 turndown.addRule("markdownImage", {
   filter: "img",
   replacement(_content, node) {
-    const src = node.getAttribute("data-markdown-src") || node.getAttribute("src") || "";
+    if (!(node instanceof HTMLImageElement)) {
+      return "";
+    }
+
+    const src = getImageMarkdownSource(node);
     if (!src) return "";
 
     const alt = escapeMarkdownAlt(node.getAttribute("alt") || "");
@@ -55,12 +137,85 @@ turndown.addRule("markdownImage", {
   }
 });
 
+/**
+ * @param {DialogFilter} filter
+ * @returns {{ name: string, extensions: string[] }}
+ */
+function createDialogFilter(filter) {
+  return { name: filter.name, extensions: [...filter.extensions] };
+}
+
+/**
+ * @param {FilePath} path
+ * @returns {Promise<MarkdownText>}
+ */
+function readMarkdownFile(path) {
+  return invoke(TAURI_COMMANDS.READ_FILE, { path });
+}
+
+/**
+ * @param {FilePath} path
+ * @param {MarkdownText} content
+ * @returns {Promise<void>}
+ */
+function writeMarkdownFile(path, content) {
+  return invoke(TAURI_COMMANDS.WRITE_FILE, { path, content });
+}
+
+/**
+ * @param {FilePath} path
+ * @returns {Promise<DataUrl>}
+ */
+function readImageDataUrl(path) {
+  return invoke(TAURI_COMMANDS.READ_IMAGE_DATA_URL, { path });
+}
+
+/**
+ * @returns {Promise<FilePath[]>}
+ */
+async function loadRecentFilesFromDisk() {
+  const response = await invoke(TAURI_COMMANDS.LOAD_RECENT_FILES);
+  return parseRecentFiles(response);
+}
+
+/**
+ * @param {FilePath[]} files
+ * @returns {Promise<void>}
+ */
+function saveRecentFilesToDisk(files) {
+  return invoke(TAURI_COMMANDS.SAVE_RECENT_FILES, { files });
+}
+
+function getImageMarkdownSource(image) {
+  if (!(image instanceof HTMLImageElement)) {
+    return "";
+  }
+
+  return image.getAttribute(DATA_ATTRIBUTES.MARKDOWN_SRC) || image.getAttribute("src") || "";
+}
+
+function setImageMarkdownSource(image, src) {
+  image.setAttribute(DATA_ATTRIBUTES.MARKDOWN_SRC, src);
+}
+
+function setImagePreviewSource(image, src) {
+  image.setAttribute(DATA_ATTRIBUTES.PREVIEW_SRC, src);
+}
+
+function createMarkdownImageHtml(markdownPath, alt) {
+  const escapedPath = escapeHtmlAttribute(markdownPath);
+  const escapedAlt = escapeHtmlAttribute(alt);
+  return `<img src="${escapedPath}" ${DATA_ATTRIBUTES.MARKDOWN_SRC}="${escapedPath}" alt="${escapedAlt}">`;
+}
+
+/**
+ * @param {string} text
+ * @param {StatusState} [state]
+ */
 function setStatus(text, state = "idle") {
   statusEl.textContent = text;
-  if (statusDot) {
-    const colors = { idle: "#FB923C", saved: "#22C55E", dirty: "#EF4444" };
-    statusDot.style.background = colors[state] || colors.idle;
-  }
+  const colors = { idle: "#FB923C", saved: "#22C55E", dirty: "#EF4444" };
+  statusDot.style.background = colors[state] || colors.idle;
 }
 
 function formatSavedAt(date) {
@@ -77,7 +232,7 @@ async function updateTitle() {
 
 function setDirty(nextDirty) {
   isDirty = nextDirty;
-  void updateTitle();
+  void updateTitle().catch(reportAsyncError);
   if (isDirty) {
     setStatus("Unsaved changes", "dirty");
   } else if (lastSavedAt) {
@@ -88,7 +243,19 @@ function setDirty(nextDirty) {
 }
 
 async function persistRecents() {
-  await invoke("save_recent_files", { files: recents });
+  await saveRecentFilesToDisk(recents);
+}
+
+function reportAsyncError(error) {
+  console.error(error);
+}
+
+function parseRecentFiles(value) {
+  if (!Array.isArray(value) || !value.every((path) => typeof path === "string")) {
+    throw new TypeError("Recent files response must be an array of file paths");
+  }
+
+  return value;
 }
 
 function renderRecents() {
@@ -158,7 +325,7 @@ function decodeLocalImageSource(src) {
 
   try {
     return decodeURIComponent(pathOnly);
-  } catch (_error) {
+  } catch {
     return pathOnly;
   }
 }
@@ -201,10 +368,10 @@ async function updateImagePreviews() {
   const images = Array.from(editor.querySelectorAll("img"));
 
   for (const image of images) {
-    const originalSrc = image.getAttribute("data-markdown-src") || image.getAttribute("src") || "";
+    const originalSrc = getImageMarkdownSource(image);
     if (!originalSrc) continue;
 
-    image.setAttribute("data-markdown-src", originalSrc);
+    setImageMarkdownSource(image, originalSrc);
     image.classList.remove("image-preview-missing");
 
     if (!isImageFilePath(originalSrc) || isExternalImageSource(originalSrc)) {
@@ -217,15 +384,15 @@ async function updateImagePreviews() {
         continue;
       }
 
-      const dataUrl = await invoke("read_image_data_url", { path: resolvedPath });
-      if (version !== imagePreviewVersion || image.getAttribute("data-markdown-src") !== originalSrc) {
+      const dataUrl = await readImageDataUrl(resolvedPath);
+      if (version !== imagePreviewVersion || getImageMarkdownSource(image) !== originalSrc) {
         continue;
       }
 
       image.setAttribute("src", dataUrl);
-      image.setAttribute("data-preview-src", resolvedPath);
+      setImagePreviewSource(image, resolvedPath);
     } catch (error) {
-      console.error(error);
+      reportAsyncError(error);
       if (version === imagePreviewVersion) {
         image.classList.add("image-preview-missing");
         image.title = `Could not preview ${originalSrc}`;
@@ -240,19 +407,25 @@ async function pushRecent(path) {
   await persistRecents();
 }
 
+async function markSaved(path) {
+  currentPath = path;
+  lastSavedAt = new Date();
+  setDirty(false);
+  await pushRecent(path);
+}
+
 async function loadRecents() {
   try {
-    const loaded = await invoke("load_recent_files");
-    recents = Array.isArray(loaded) ? loaded : [];
+    recents = await loadRecentFilesFromDisk();
     renderRecents();
   } catch (error) {
-    console.error(error);
+    reportAsyncError(error);
     setStatus("Could not load recent files", "dirty");
   }
 }
 
 async function openPath(path) {
-  const content = await invoke("read_file", { path });
+  const content = await readMarkdownFile(path);
   currentPath = path;
   setEditorFromMarkdown(content);
   lastSavedAt = new Date();
@@ -264,7 +437,7 @@ async function handleOpen() {
   try {
     const selected = await open({
       title: "Open Markdown File",
-      filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }],
+      filters: [createDialogFilter(DIALOG_FILTERS.MARKDOWN_OPEN)],
       multiple: false
     });
 
@@ -274,7 +447,7 @@ async function handleOpen() {
 
     await openPath(selected);
   } catch (error) {
-    console.error(error);
+    reportAsyncError(error);
     setStatus("Open failed", "dirty");
   }
 }
@@ -284,21 +457,18 @@ async function handleSaveAs() {
     const selectedPath = await save({
       title: "Save Markdown File",
       defaultPath: currentPath ?? "untitled.md",
-      filters: [{ name: "Markdown", extensions: ["md", "markdown"] }]
+      filters: [createDialogFilter(DIALOG_FILTERS.MARKDOWN_SAVE)]
     });
 
     if (!selectedPath) {
       return false;
     }
 
-    await invoke("write_file", { path: selectedPath, content: getEditorMarkdown() });
-    currentPath = selectedPath;
-    lastSavedAt = new Date();
-    setDirty(false);
-    await pushRecent(selectedPath);
+    await writeMarkdownFile(selectedPath, getEditorMarkdown());
+    await markSaved(selectedPath);
     return true;
   } catch (error) {
-    console.error(error);
+    reportAsyncError(error);
     setStatus("Save As failed", "dirty");
     return false;
   }
@@ -311,18 +481,16 @@ async function handleSave() {
   }
 
   try {
-    await invoke("write_file", { path: currentPath, content: getEditorMarkdown() });
-    lastSavedAt = new Date();
-    setDirty(false);
-    await pushRecent(currentPath);
+    await writeMarkdownFile(currentPath, getEditorMarkdown());
+    await markSaved(currentPath);
   } catch (error) {
-    console.error(error);
+    reportAsyncError(error);
     setStatus("Save failed", "dirty");
   }
 }
 
 function isEditorVisiblyEmpty() {
-  return editor.textContent.trim().length === 0;
+  return (editor.textContent ?? "").trim().length === 0;
 }
 
 function getEditorMarkdown() {
@@ -338,17 +506,16 @@ function getEditorMarkdown() {
   return markdown.replace(/\n{3,}/g, "\n\n");
 }
 
-function setEditorFromMarkdown(markdown) {
+function renderEditorMarkdown(markdown) {
   const raw = markdown.trim();
-  if (!raw) {
-    editor.innerHTML = "";
-    if (isSplitView) sourceEditor.value = "";
-    return;
-  }
-
-  editor.innerHTML = marked.parse(raw);
-  if (isSplitView) sourceEditor.value = raw;
+  editor.innerHTML = raw ? marked.parse(raw, { async: false }) : "";
   void updateImagePreviews();
+  return raw;
+}
+
+function setEditorFromMarkdown(markdown) {
+  const raw = renderEditorMarkdown(markdown);
+  if (isSplitView) sourceEditor.value = raw;
 }
 
 function syncSourceFromEditor() {
@@ -361,6 +528,10 @@ function syncSourceFromEditor() {
   isSyncing = false;
 }
 
+/**
+ * @param {EditorCommand} command
+ * @param {string | null} [value]
+ */
 function applyCommand(command, value = null) {
   editor.focus();
   document.execCommand(command, false, value);
@@ -428,8 +599,7 @@ async function insertImageReference(imagePath, altText = null) {
   }
 
   editor.focus();
-  const imageHtml = `<img src="${escapeHtmlAttribute(markdownPath)}" data-markdown-src="${escapeHtmlAttribute(markdownPath)}" alt="${escapeHtmlAttribute(alt)}">`;
-  document.execCommand("insertHTML", false, imageHtml);
+  document.execCommand("insertHTML", false, createMarkdownImageHtml(markdownPath, alt));
   setDirty(true);
   syncSourceFromEditor();
   void updateImagePreviews();
@@ -447,7 +617,7 @@ async function insertImageFromDialog() {
   try {
     const selected = await open({
       title: "Insert Image",
-      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif", "apng"] }],
+      filters: [createDialogFilter(DIALOG_FILTERS.IMAGE_OPEN)],
       multiple: false
     });
 
@@ -463,7 +633,7 @@ async function insertImageFromDialog() {
 
     await insertImageReference(selected, alt);
   } catch (error) {
-    console.error(error);
+    reportAsyncError(error);
     setStatus("Image insert failed", "dirty");
   }
 }
@@ -472,23 +642,15 @@ editor.addEventListener("input", () => {
   setDirty(true);
   if (isSplitView && activePane === "editor" && !isSyncing) {
     isSyncing = true;
-    sourceEditor.value = isEditorVisiblyEmpty() ? "" : turndown.turndown(editor.innerHTML);
+    sourceEditor.value = getEditorMarkdown();
     isSyncing = false;
   }
   void updateImagePreviews();
 });
 
-openButton.addEventListener("click", () => {
-  void handleOpen();
-});
-
-saveButton.addEventListener("click", () => {
-  void handleSave();
-});
-
-saveAsButton.addEventListener("click", () => {
-  void handleSaveAs();
-});
+openButton.addEventListener("click", () => void handleOpen());
+saveButton.addEventListener("click", () => void handleSave());
+saveAsButton.addEventListener("click", () => void handleSaveAs());
 
 recentSelect.addEventListener("change", async () => {
   const path = recentSelect.value;
@@ -500,42 +662,27 @@ recentSelect.addEventListener("change", async () => {
     await openPath(path);
     recentSelect.value = "";
   } catch (error) {
-    console.error(error);
+    reportAsyncError(error);
     setStatus("Could not open recent file", "dirty");
   }
 });
 
-fmtBoldButton.addEventListener("click", () => {
-  applyCommand("bold");
+/** @type {Array<[HTMLButtonElement, EditorCommand, string?]>} */
+const formattingCommands = [
+  [fmtBoldButton, "bold"],
+  [fmtItalicButton, "italic"],
+  [fmtHeadingButton, "formatBlock", "h2"],
+  [fmtListButton, "insertUnorderedList"],
+  [fmtOrderedListButton, "insertOrderedList"]
+];
+
+formattingCommands.forEach(([button, command, value]) => {
+  button.addEventListener("click", () => applyCommand(command, value));
 });
 
-fmtItalicButton.addEventListener("click", () => {
-  applyCommand("italic");
-});
-
-fmtHeadingButton.addEventListener("click", () => {
-  applyCommand("formatBlock", "h2");
-});
-
-fmtListButton.addEventListener("click", () => {
-  applyCommand("insertUnorderedList");
-});
-
-fmtOrderedListButton.addEventListener("click", () => {
-  applyCommand("insertOrderedList");
-});
-
-fmtLinkButton.addEventListener("click", () => {
-  insertLink();
-});
-
-fmtImageButton.addEventListener("click", () => {
-  void insertImageFromDialog();
-});
-
-fmtCodeButton.addEventListener("click", () => {
-  toggleInlineCode();
-});
+fmtLinkButton.addEventListener("click", insertLink);
+fmtImageButton.addEventListener("click", () => void insertImageFromDialog());
+fmtCodeButton.addEventListener("click", toggleInlineCode);
 
 window.addEventListener("keydown", (event) => {
   if (!event.metaKey && !event.ctrlKey) {
@@ -592,7 +739,7 @@ async function setupDropHandling() {
         }
       }
     } catch (error) {
-      console.error(error);
+      reportAsyncError(error);
       setStatus("Drop open failed", "dirty");
     }
   });
@@ -616,24 +763,32 @@ const moonIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" st
   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
 </svg>`;
 
+/**
+ * @param {ThemeName} theme
+ */
 function updateThemeIcon(theme) {
   toggleThemeBtn.innerHTML = theme === "dark" ? sunIcon : moonIcon;
   toggleThemeBtn.title = theme === "dark" ? "Light Mode" : "Dark Mode";
 }
 
+function isThemeName(value) {
+  return value === "light" || value === "dark";
+}
+
 function initTheme() {
-  const saved = localStorage.getItem("mkdown-theme");
-  if (saved) {
-    document.documentElement.setAttribute("data-theme", saved);
+  const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+  if (isThemeName(saved)) {
+    document.documentElement.setAttribute(DATA_ATTRIBUTES.THEME, saved);
     updateThemeIcon(saved);
   }
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const savedTheme = document.documentElement.getAttribute(DATA_ATTRIBUTES.THEME);
+  const current = isThemeName(savedTheme) ? savedTheme : "light";
   const next = current === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", next);
-  localStorage.setItem("mkdown-theme", next);
+  document.documentElement.setAttribute(DATA_ATTRIBUTES.THEME, next);
+  localStorage.setItem(STORAGE_KEYS.THEME, next);
   updateThemeIcon(next);
 }
 
@@ -665,9 +820,7 @@ sourceEditor.addEventListener("input", () => {
   setDirty(true);
   if (isSplitView && activePane === "source") {
     isSyncing = true;
-    const md = sourceEditor.value.trim();
-    editor.innerHTML = md ? marked.parse(md) : "";
-    void updateImagePreviews();
+    renderEditorMarkdown(sourceEditor.value);
     isSyncing = false;
   }
 });
@@ -681,4 +834,7 @@ async function init() {
   await setupDropHandling();
 }
 
-void init();
+void init().catch((error) => {
+  reportAsyncError(error);
+  setStatus("Startup failed", "dirty");
+});

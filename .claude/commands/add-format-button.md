@@ -9,15 +9,14 @@ Follow these steps:
    <button id="fmt-myformat" title="My Format">Icon</button>
    ```
 
-2. **Read `src/main.js`** — find the existing format button handlers and add:
+2. **Read `src/main.js`** — use the existing required-element helper for the new button:
    ```js
-   const fmtMyFormatButton = document.querySelector("#fmt-myformat");
+   const fmtMyFormatButton = requireButtonElement("#fmt-myformat");
    ```
-   Then wire up the click handler near the other `fmtXxxButton.addEventListener` calls:
+   Then wire up the click handler near the formatting command list or the
+   adjacent custom format handlers:
    ```js
-   fmtMyFormatButton.addEventListener("click", () => {
-     applyCommand("commandName"); // or custom logic
-   });
+   fmtMyFormatButton.addEventListener("click", () => applyCommand("commandName"));
    ```
 
 3. **Read `src/styles.css`** — check if any additional styles are needed for the button.
