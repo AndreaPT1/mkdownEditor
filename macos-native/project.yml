@@ -1,0 +1,44 @@
+name: mkdownEditorNative
+options:
+  minimumXcodeGenVersion: 2.45.0
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "14.0"
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGNING_ALLOWED: NO
+    ARCHS: arm64
+    ONLY_ACTIVE_ARCH: YES
+    SUPPORTED_PLATFORMS: macosx
+    SWIFT_VERSION: "6.0"
+targets:
+  mkdownEditorNative:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: mkdownEditor/Sources
+    resources:
+      - path: mkdownEditor/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.andrea.mkdowneditor.native
+        PRODUCT_NAME: mkdownEditorNative
+        INFOPLIST_FILE: mkdownEditor/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ENABLE_HARDENED_RUNTIME: YES
+        ARCHS: arm64
+        VALID_ARCHS: arm64
+    scheme:
+      testTargets: []
