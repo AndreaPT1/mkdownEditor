@@ -68,6 +68,9 @@ jobs:
             | Windows | `mkdownEditor_*_x64-setup.exe` |
             | Linux | `mkdownEditor_*_amd64.AppImage` |
 
+            ### Windows SmartScreen note
+            Windows Defender SmartScreen may warn that mkdownEditor is unrecognized while Windows releases are unsigned or still building publisher reputation. Only install downloads from this official GitHub release.
+
             ### macOS note
             At first launch, right-click the app → Open to bypass Gatekeeper.
           releaseDraft: false

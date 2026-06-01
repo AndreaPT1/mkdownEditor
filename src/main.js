@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { basename } from "@tauri-apps/api/path";
+import { basename, dirname, isAbsolute, join } from "@tauri-apps/api/path";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { marked } from "marked";
 import TurndownService from "turndown";
@@ -17,6 +17,7 @@ const fmtBoldButton = document.querySelector("#fmt-bold");
 const fmtItalicButton = document.querySelector("#fmt-italic");
 const fmtHeadingButton = document.querySelector("#fmt-heading");
 const fmtLinkButton = document.querySelector("#fmt-link");
+const fmtImageButton = document.querySelector("#fmt-image");
 const fmtListButton = document.querySelector("#fmt-list");
 const fmtOrderedListButton = document.querySelector("#fmt-ordered-list");
 const fmtCodeButton = document.querySelector("#fmt-code");
@@ -35,8 +36,24 @@ let isSplitView = false;
 let activePane = "editor";
 let isSyncing = false;
 const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
+const IMAGE_EXTENSIONS = new Set([".apng", ".avif", ".bmp", ".gif", ".ico", ".jpg", ".jpeg", ".png", ".svg", ".webp"]);
+const MARKDOWN_EXTENSIONS = new Set([".md", ".markdown", ".txt"]);
+let imagePreviewVersion = 0;
 
 marked.setOptions({ breaks: true, gfm: true });
+
+turndown.addRule("markdownImage", {
+  filter: "img",
+  replacement(_content, node) {
+    const src = node.getAttribute("data-markdown-src") || node.getAttribute("src") || "";
+    if (!src) return "";
+
+    const alt = escapeMarkdownAlt(node.getAttribute("alt") || "");
+    const title = node.getAttribute("title");
+    const titlePart = title ? ` "${escapeMarkdownTitle(title)}"` : "";
+    return `![${alt}](${formatMarkdownDestination(src)}${titlePart})`;
+  }
+});
 
 function setStatus(text, state = "idle") {
   statusEl.textContent = text;
@@ -86,6 +103,134 @@ function renderRecents() {
     option.value = path;
     option.textContent = path;
     recentSelect.appendChild(option);
+  }
+}
+
+function getPathExtension(path) {
+  const cleanPath = path.split(/[?#]/)[0].toLowerCase();
+  const match = cleanPath.match(/\.[a-z0-9]+$/);
+  return match ? match[0] : "";
+}
+
+function isImageFilePath(path) {
+  return IMAGE_EXTENSIONS.has(getPathExtension(path));
+}
+
+function isMarkdownFilePath(path) {
+  return MARKDOWN_EXTENSIONS.has(getPathExtension(path));
+}
+
+function isExternalImageSource(src) {
+  return /^(?:https?:|data:|blob:|asset:|about:|#)/i.test(src);
+}
+
+function escapeHtmlAttribute(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeMarkdownAlt(value) {
+  return value.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
+}
+
+function escapeMarkdownTitle(value) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function formatMarkdownDestination(src) {
+  const cleanSrc = src.trim().replace(/\n/g, " ");
+  if (/[\s()<>]/.test(cleanSrc)) {
+    return `<${cleanSrc.replace(/>/g, "%3E")}>`;
+  }
+
+  return cleanSrc;
+}
+
+function normalizeMarkdownPath(path) {
+  return path.replace(/\\/g, "/");
+}
+
+function decodeLocalImageSource(src) {
+  const pathOnly = src.split(/[?#]/)[0];
+
+  try {
+    return decodeURIComponent(pathOnly);
+  } catch (_error) {
+    return pathOnly;
+  }
+}
+
+async function resolveMarkdownImagePath(src) {
+  if (!src || isExternalImageSource(src)) {
+    return null;
+  }
+
+  if (src.startsWith("file://")) {
+    const url = new URL(src);
+    const decodedPath = decodeURIComponent(url.pathname);
+    return decodedPath.match(/^\/[A-Za-z]:\//) ? decodedPath.slice(1) : decodedPath;
+  }
+
+  const localSrc = decodeLocalImageSource(src);
+  if (await isAbsolute(localSrc)) {
+    return localSrc;
+  }
+
+  if (!currentPath) {
+    return null;
+  }
+
+  const currentDir = await dirname(currentPath);
+  return join(currentDir, localSrc);
+}
+
+async function createMarkdownPathForImage(imagePath) {
+  return normalizeMarkdownPath(imagePath);
+}
+
+async function getDefaultImageAlt(imagePath) {
+  const name = await basename(imagePath);
+  return name.replace(/\.[^.]+$/, "") || "image";
+}
+
+async function updateImagePreviews() {
+  const version = ++imagePreviewVersion;
+  const images = Array.from(editor.querySelectorAll("img"));
+
+  for (const image of images) {
+    const originalSrc = image.getAttribute("data-markdown-src") || image.getAttribute("src") || "";
+    if (!originalSrc) continue;
+
+    image.setAttribute("data-markdown-src", originalSrc);
+    image.classList.remove("image-preview-missing");
+
+    if (!isImageFilePath(originalSrc) || isExternalImageSource(originalSrc)) {
+      continue;
+    }
+
+    try {
+      const resolvedPath = await resolveMarkdownImagePath(originalSrc);
+      if (!resolvedPath) {
+        continue;
+      }
+
+      const dataUrl = await invoke("read_image_data_url", { path: resolvedPath });
+      if (version !== imagePreviewVersion || image.getAttribute("data-markdown-src") !== originalSrc) {
+        continue;
+      }
+
+      image.setAttribute("src", dataUrl);
+      image.setAttribute("data-preview-src", resolvedPath);
+    } catch (error) {
+      console.error(error);
+      if (version === imagePreviewVersion) {
+        image.classList.add("image-preview-missing");
+        image.title = `Could not preview ${originalSrc}`;
+      }
+    }
   }
 }
 
@@ -203,6 +348,17 @@ function setEditorFromMarkdown(markdown) {
 
   editor.innerHTML = marked.parse(raw);
   if (isSplitView) sourceEditor.value = raw;
+  void updateImagePreviews();
+}
+
+function syncSourceFromEditor() {
+  if (!isSplitView || activePane !== "editor" || isSyncing) {
+    return;
+  }
+
+  isSyncing = true;
+  sourceEditor.value = getEditorMarkdown();
+  isSyncing = false;
 }
 
 function applyCommand(command, value = null) {
@@ -244,6 +400,74 @@ function insertLink() {
   setDirty(true);
 }
 
+function insertMarkdownIntoSource(markdown) {
+  const start = sourceEditor.selectionStart ?? sourceEditor.value.length;
+  const end = sourceEditor.selectionEnd ?? start;
+  const prefix = sourceEditor.value.slice(0, start);
+  const suffix = sourceEditor.value.slice(end);
+  const before = prefix && !prefix.endsWith("\n") ? "\n" : "";
+  const after = suffix && !suffix.startsWith("\n") ? "\n" : "";
+  const inserted = `${before}${markdown}${after}`;
+
+  sourceEditor.value = `${prefix}${inserted}${suffix}`;
+  const nextPosition = start + inserted.length;
+  setEditorFromMarkdown(sourceEditor.value);
+  sourceEditor.setSelectionRange(nextPosition, nextPosition);
+  setDirty(true);
+}
+
+async function insertImageReference(imagePath, altText = null) {
+  const markdownPath = await createMarkdownPathForImage(imagePath);
+  const alt = altText ?? await getDefaultImageAlt(imagePath);
+  const markdown = `![${escapeMarkdownAlt(alt)}](${formatMarkdownDestination(markdownPath)})`;
+
+  if (isSplitView && activePane === "source") {
+    insertMarkdownIntoSource(markdown);
+    sourceEditor.focus();
+    return;
+  }
+
+  editor.focus();
+  const imageHtml = `<img src="${escapeHtmlAttribute(markdownPath)}" data-markdown-src="${escapeHtmlAttribute(markdownPath)}" alt="${escapeHtmlAttribute(alt)}">`;
+  document.execCommand("insertHTML", false, imageHtml);
+  setDirty(true);
+  syncSourceFromEditor();
+  void updateImagePreviews();
+}
+
+async function insertDroppedImages(paths) {
+  for (const path of paths) {
+    if (isImageFilePath(path)) {
+      await insertImageReference(path);
+    }
+  }
+}
+
+async function insertImageFromDialog() {
+  try {
+    const selected = await open({
+      title: "Insert Image",
+      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif", "apng"] }],
+      multiple: false
+    });
+
+    if (!selected || typeof selected !== "string") {
+      return;
+    }
+
+    const defaultAlt = await getDefaultImageAlt(selected);
+    const alt = window.prompt("Image description", defaultAlt);
+    if (alt === null) {
+      return;
+    }
+
+    await insertImageReference(selected, alt);
+  } catch (error) {
+    console.error(error);
+    setStatus("Image insert failed", "dirty");
+  }
+}
+
 editor.addEventListener("input", () => {
   setDirty(true);
   if (isSplitView && activePane === "editor" && !isSyncing) {
@@ -251,6 +475,7 @@ editor.addEventListener("input", () => {
     sourceEditor.value = isEditorVisiblyEmpty() ? "" : turndown.turndown(editor.innerHTML);
     isSyncing = false;
   }
+  void updateImagePreviews();
 });
 
 openButton.addEventListener("click", () => {
@@ -304,6 +529,10 @@ fmtLinkButton.addEventListener("click", () => {
   insertLink();
 });
 
+fmtImageButton.addEventListener("click", () => {
+  void insertImageFromDialog();
+});
+
 fmtCodeButton.addEventListener("click", () => {
   toggleInlineCode();
 });
@@ -348,11 +577,18 @@ async function setupDropHandling() {
     }
 
     try {
+      if (paths.every((path) => isImageFilePath(path))) {
+        await insertDroppedImages(paths);
+        return;
+      }
+
       await openPath(firstPath);
 
       if (paths.length > 1) {
         for (const extraPath of paths.slice(1)) {
-          await pushRecent(extraPath);
+          if (isMarkdownFilePath(extraPath)) {
+            await pushRecent(extraPath);
+          }
         }
       }
     } catch (error) {
@@ -431,6 +667,7 @@ sourceEditor.addEventListener("input", () => {
     isSyncing = true;
     const md = sourceEditor.value.trim();
     editor.innerHTML = md ? marked.parse(md) : "";
+    void updateImagePreviews();
     isSyncing = false;
   }
 });

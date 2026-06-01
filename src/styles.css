@@ -484,6 +484,19 @@ body {
 .editor img {
   max-width: 100%;
   border-radius: var(--radius-md);
+  display: block;
+  margin: 0.5em 0 1em;
+  border: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  box-shadow: var(--shadow-sm);
+}
+
+.editor img.image-preview-missing {
+  min-height: 96px;
+  padding: 16px;
+  object-fit: contain;
+  opacity: 0.72;
+  border-style: dashed;
 }
 
 /* ===== Split View ===== */

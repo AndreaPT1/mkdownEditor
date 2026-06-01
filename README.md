@@ -14,10 +14,15 @@ Grab the latest release from the [Releases](../../releases) page.
 |----------|------|-------|
 | macOS (Apple Silicon) | `mkdownEditor_*_aarch64.dmg` | Drag the app to Applications |
 | macOS (Intel) | `mkdownEditor_*_x64.dmg` | Drag the app to Applications |
-| Windows | `mkdownEditor_*_x64-setup.exe` | Run the installer and follow the prompts |
+| Windows | `mkdownEditor_*_x64-setup.exe` | SmartScreen may warn on unsigned builds; only install downloads from the official Releases page |
 | Linux | `mkdownEditor_*_amd64.AppImage` | `chmod +x` then run |
 
 > **macOS:** at first launch, right-click the app → Open to bypass Gatekeeper.
+>
+> **Windows:** Microsoft Defender SmartScreen may show an "unrecognized app"
+> warning until Windows releases are signed with a trusted publisher identity and
+> the app has built reputation. Maintainer notes are in
+> [docs/windows-smartscreen.md](docs/windows-smartscreen.md).
 
 ## Features
 
